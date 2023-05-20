@@ -5,24 +5,13 @@ import random
 import os
 from configs import *
 
-def sendFile(path):
+#========== UTILITY FUNCTIONS ==========#
 
+# Connect to the FTP server & authenticate
+def connectCtrl():
     #===== CONNECT CONTROL PORT =====#
     ctrlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     ctrlSock.connect((FTP_SERVER, FTP_CTRL_PORT))
-
-    def runConvo(sock, convo):
-        res = []
-        for c in convo:
-            sock.send(c.encode())
-            response = sock.recv(BUFFER).decode()
-
-            print(c)
-            print(C_ORANGE + response + C_RESET)
-
-            res.append(response)
-
-        return res
 
     # Receive the initial message from the server
     print(ctrlSock.recv(1024).decode())
@@ -33,19 +22,10 @@ def sendFile(path):
         f'PASS {PASSWORD}\r\n',
     ])
 
-    # Get files on server
-    # runConvo(ctrlSock, [
-    #     'LIST\r\n',
-    #     'PWD\r\n',
-    #     'QUIT\r\n'
-    #     ])
-    # ctrlSock.close()
-    # exit()
+    return ctrlSock
 
-    #===== CONNECT DATA PORT =====#
-    # Establish filename to save in the FTP directory
-    filename = path.rsplit(os.sep, maxsplit=1)[-1]
-    filename = "test.txt"
+# Establish a data connection with the server
+def connectData(ctrlSock):
 
     # Create a new socket for the server to connect back to
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -69,83 +49,72 @@ def sendFile(path):
     portArgs = CLIENT_HOST + ',' + str(CLIENT_PORT // 256) + ',' + str(CLIENT_PORT % 256)
 
     runConvo(ctrlSock, [
-        # 'PASV\r\n',
         # Enter binary mode
         'TYPE I\r\n',
         # Tell the server what ip/port to connect to
         f'PORT {portArgs}\r\n',
     ])
 
-    # This will prompt the server to connect to our data socket
-    runConvo(ctrlSock, [ f'STOR {filename}\r\n' ])
+    return dataSock
 
-    conn, addr = dataSock.accept() # Embrace connection 😳
-    print(f"{C_GREEN}CONNECTED {C_RED}{addr}{C_RESET}")
+# Throw a bunch of FTP commands at the server
+def runConvo(sock, convo):
+    res = []
+    for c in convo:
+        sock.send(c.encode())
+        response = sock.recv(BUFFER).decode()
 
-    #===== SEND FILE =====#
-    with open("./test.txt", 'rb') as file:
-        conn.send(file.read())
+        print(c)
+        print(C_ORANGE + response + C_RESET)
 
-    conn.close() # Tells the server we're done sending data
+        res.append(response)
+
+    return res
+
+
+#========== FTP FUNCTIONS ==========#
+def listFiles():
+    ctrlSock = connectCtrl()
+    dataSock = connectData(ctrlSock)
+
+    # Get files on server
+    runConvo(ctrlSock, [ 'LIST\r\n' ])
+    conn, addr = dataSock.accept()
+
+    # Print files
+    print(conn.recv(BUFFER).decode())
+
+    # Close connections
+    conn.close()
     dataSock.close()
 
     runConvo(ctrlSock, [ 'QUIT\r\n' ])
     ctrlSock.close()
 
+    exit()
 
-def deleteFile(path):
+def sendFile(path):
+    ctrlSock = connectCtrl()
+    dataSock = connectData(ctrlSock)
 
-    #===== CONNECT CONTROL PORT =====#
-    ctrlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ctrlSock.connect((FTP_SERVER, FTP_CTRL_PORT))
+    # Establish filename to save in the FTP directory
+    filename = path.rsplit(os.sep, maxsplit=1)[-1]
+    filename = "test.txt"
 
-    def runConvo(sock, convo):
-        res = []
-        for c in convo:
-            sock.send(c.encode())
-            response = sock.recv(BUFFER).decode()
+    # This will prompt the server to immediately connect to our data socket
+    runConvo(ctrlSock, [ f'STOR {filename}\r\n' ])
 
-            print(c)
-            print(C_ORANGE + response + C_RESET)
+    conn, addr = dataSock.accept() # Embrace connection 🤗
+    # print(f"{C_GREEN}CONNECTED {C_RED}{addr}{C_RESET}")
 
-            res.append(response)
+    # Send file
+    with open("./test.txt", 'rb') as file:
+        conn.send(file.read())
 
-        return res
 
-    # Receive the initial message from the server
-    print(ctrlSock.recv(1024).decode())
-
-    # Authenticate
-    runConvo(ctrlSock, [
-        f'USER {USERNAME}\r\n',
-        f'PASS {PASSWORD}\r\n',
-    ])
-
-    # Get files on server
-    # runConvo(ctrlSock, [ 'LIST\r\n' ])
-
-    #===== CONNECT DATA PORT =====#
-    filename = FILE_PATH.rsplit(os.sep, maxsplit=1)[-1]
-
-    resp = runConvo(ctrlSock, [
-        'TYPE I\r\n', # Enter binary mode
-        f'DELE {filename}\r\n', # Send the DELE command
-    ])
-
-    if resp[-1][0] != '1':
-        print(C_RED + "❌ Error:", resp[-1] + C_RESET, end="")
-        print(C_RED + "| Check that you have write permissions on the server bozo" + C_RESET)
-        return
-
-    dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    dataSock.connect((FTP_SERVER, FTP_DATA_PORT))
-
-    #===== CHECK FILE CORRECTLY RECEIVED =====#
-    # TODO
-    resp = dataSock.recv(BUFFER).decode()
-    # print(resp) # Hopefully 226 Transfer complete 🤞
-
-    runConvo(dataSock, [ 'QUIT\r\n' ])
+    # Close connections
+    conn.close() # Tells the server we're done sending data
     dataSock.close()
+
     runConvo(ctrlSock, [ 'QUIT\r\n' ])
     ctrlSock.close()

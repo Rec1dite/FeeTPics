@@ -1,6 +1,6 @@
 # pylint: disable=missing-module-docstring, wildcard-import, unused-wildcard-import, missing-function-docstring, invalid-name, missing-class-docstring
 import time
-from ftp import sendFile
+from ftp import sendFile, listFiles
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from configs import *
@@ -22,6 +22,7 @@ class UpdateEventHandler(FileSystemEventHandler):
 if __name__ == '__main__':
 
     sendFile("./test.txt")
+    listFiles()
     exit()
 
     observer = Observer()
