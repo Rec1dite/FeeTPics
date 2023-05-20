@@ -1,11 +1,9 @@
 # pylint: disable=missing-module-docstring, wildcard-import, unused-wildcard-import, missing-function-docstring, invalid-name, missing-class-docstring
 
 import socket
+import random
 import os
 from configs import *
-
-# Set up some constants
-FILE_PATH = 'path/to/your/file'
 
 def sendFile(path):
 
@@ -36,36 +34,60 @@ def sendFile(path):
     ])
 
     # Get files on server
-    # runConvo(ctrlSock, [ 'LIST\r\n' ])
+    # runConvo(ctrlSock, [
+    #     'LIST\r\n',
+    #     'PWD\r\n',
+    #     'QUIT\r\n'
+    #     ])
+    # ctrlSock.close()
+    # exit()
 
     #===== CONNECT DATA PORT =====#
-    filename = FILE_PATH.rsplit(os.sep, maxsplit=1)[-1]
+    # Establish filename to save in the FTP directory
+    filename = path.rsplit(os.sep, maxsplit=1)[-1]
+    filename = "test.txt"
 
-    resp = runConvo(ctrlSock, [
-        'TYPE I\r\n', # Enter binary mode
-        f'STOR {filename}\r\n', # Send the STOR command
+    # Create a new socket for the server to connect back to
+    dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    CLIENT_PORT = 10000 + random.randint(0, 10000)
+
+    # Find an open port
+    foundOpenPort = False
+    while not foundOpenPort:
+        try:
+            dataSock.bind(("", CLIENT_PORT))
+            foundOpenPort = True
+        except OSError:
+            CLIENT_PORT = 10000 + random.randint(0, 10000)
+
+    dataSock.listen(1)
+
+    # Get our IP address
+    CLIENT_HOST = socket.gethostbyname(socket.gethostname())
+    CLIENT_HOST = ','.join(CLIENT_HOST.split('.'))
+
+    portArgs = CLIENT_HOST + ',' + str(CLIENT_PORT // 256) + ',' + str(CLIENT_PORT % 256)
+
+    runConvo(ctrlSock, [
+        # 'PASV\r\n',
+        # Enter binary mode
+        'TYPE I\r\n',
+        # Tell the server what ip/port to connect to
+        f'PORT {portArgs}\r\n',
     ])
 
-    if resp[-1][0] != '1':
-        print(C_RED + "❌ Error:", resp[-1] + C_RESET, end="")
-        print(C_RED + "| Check that you have write permissions on the server bozo" + C_RESET)
-        return
+    # This will prompt the server to connect to our data socket
+    runConvo(ctrlSock, [ f'STOR {filename}\r\n' ])
 
-    dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    dataSock.connect((FTP_SERVER, FTP_DATA_PORT))
+    conn, addr = dataSock.accept() # Embrace connection 😳
+    print(f"{C_GREEN}CONNECTED {C_RED}{addr}{C_RESET}")
 
     #===== SEND FILE =====#
+    with open("./test.txt", 'rb') as file:
+        conn.send(file.read())
 
-    # Open the file and send its contents
-    with open(FILE_PATH, 'rb') as file:
-        dataSock.send(file.read())
-
-    #===== CHECK FILE CORRECTLY RECEIVED =====#
-    # TODO
-    resp = dataSock.recv(BUFFER).decode()
-    # print(resp) # Hopefully 226 Transfer complete 🤞
-
-    runConvo(dataSock, [ 'QUIT\r\n' ])
+    conn.close() # Tells the server we're done sending data
     dataSock.close()
+
     runConvo(ctrlSock, [ 'QUIT\r\n' ])
     ctrlSock.close()
