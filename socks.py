@@ -64,7 +64,7 @@ def runConvo(sock, convo):
         sock.send(c.encode())
         response = sock.recv(BUFFER).decode()
 
-        print(c)
+        print(c, end="")
         print(C_ORANGE + response + C_RESET)
 
         res.append(response)
@@ -90,8 +90,6 @@ def listFiles():
 
     runConvo(ctrlSock, [ 'QUIT\r\n' ])
     ctrlSock.close()
-
-    exit()
 
 def sendFile(path):
     ctrlSock = connectCtrl()
