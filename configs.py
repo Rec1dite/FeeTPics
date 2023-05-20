@@ -11,3 +11,6 @@ FTP_PORT = 21 # command port
 USERNAME = 'yourusername'
 PASSWORD = 'yourpassword'
 BUFFER = 1024
+
+#===== Backup Directory path =====#
+PATH = "./backup"
