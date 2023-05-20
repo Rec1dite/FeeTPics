@@ -7,9 +7,10 @@ C_RESET = "\033[0m"
 
 #===== FTP CONFIGS =====#
 FTP_SERVER = 'localhost'
-FTP_PORT = 21 # command port
-USERNAME = 'yourusername'
-PASSWORD = 'yourpassword'
+FTP_DATA_PORT = 20
+FTP_CTRL_PORT = 21
+USERNAME = 'mokey'
+PASSWORD = 'gustav_is_cool69'
 BUFFER = 1024
 
 #===== Backup Directory path =====#
