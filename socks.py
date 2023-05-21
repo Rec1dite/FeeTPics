@@ -2,7 +2,6 @@
 
 import socket
 import random
-import os
 from configs import *
 
 #========== UTILITY FUNCTIONS ==========#
@@ -91,12 +90,9 @@ def listFiles():
     runConvo(ctrlSock, [ 'QUIT\r\n' ])
     ctrlSock.close()
 
-def sendData(path, conversation, newpath=None, write=False):
+def sendData(conversation, write=False, path=""):
     ctrlSock = connectCtrl()
     dataSock = connectData(ctrlSock)
-
-    # Establish filename to save in the FTP directory
-    filename = path.rsplit(os.sep, maxsplit=1)[-1]
 
     # This will prompt the server to immediately connect to our data socket
     runConvo(ctrlSock, conversation)
