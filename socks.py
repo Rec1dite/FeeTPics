@@ -91,23 +91,23 @@ def listFiles():
     runConvo(ctrlSock, [ 'QUIT\r\n' ])
     ctrlSock.close()
 
-def sendFile(path):
+def sendData(path, conversation, newpath=None, write=False):
     ctrlSock = connectCtrl()
     dataSock = connectData(ctrlSock)
 
     # Establish filename to save in the FTP directory
     filename = path.rsplit(os.sep, maxsplit=1)[-1]
-    filename = "test.txt"
 
     # This will prompt the server to immediately connect to our data socket
-    runConvo(ctrlSock, [ f'STOR {filename}\r\n' ])
+    runConvo(ctrlSock, conversation)
 
     conn, addr = dataSock.accept() # Embrace connection 🤗
     # print(f"{C_GREEN}CONNECTED {C_RED}{addr}{C_RESET}")
 
     # Send file
-    with open("./test.txt", 'rb') as file:
-        conn.send(file.read())
+    if (write):
+        with open(path, 'rb') as file:
+            conn.send(file.read())
 
 
     # Close connections
