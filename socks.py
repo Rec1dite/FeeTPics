@@ -2,29 +2,31 @@
 
 import socket
 import random
+import os
 from configs import *
 
 #========== UTILITY FUNCTIONS ==========#
 
 # Connect to the FTP server & authenticate
-def connectCtrl():
+def connectCtrl(verbose = False):
     #===== CONNECT CONTROL PORT =====#
     ctrlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     ctrlSock.connect((FTP_SERVER, FTP_CTRL_PORT))
 
     # Receive the initial message from the server
-    print(ctrlSock.recv(1024).decode())
+    if verbose:
+        print(ctrlSock.recv(1024).decode())
 
     # Authenticate
     runConvo(ctrlSock, [
         f'USER {USERNAME}\r\n',
         f'PASS {PASSWORD}\r\n',
-    ])
+    ], verbose=verbose)
 
     return ctrlSock
 
 # Establish a data connection with the server
-def connectData(ctrlSock):
+def connectData(ctrlSock, verbose = False):
 
     # Create a new socket for the server to connect back to
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -52,19 +54,20 @@ def connectData(ctrlSock):
         'TYPE I\r\n',
         # Tell the server what ip/port to connect to
         f'PORT {portArgs}\r\n',
-    ])
+    ], verbose=verbose)
 
     return dataSock
 
 # Throw a bunch of FTP commands at the server
-def runConvo(sock, convo):
+def runConvo(sock, convo, verbose = False):
     res = []
     for c in convo:
         sock.send(c.encode())
         response = sock.recv(BUFFER).decode()
 
-        print(c, end="")
-        print(C_ORANGE + response + C_RESET)
+        if verbose:
+            print(c, end="")
+            print(C_ORANGE + response + C_RESET)
 
         res.append(response)
 
@@ -72,16 +75,39 @@ def runConvo(sock, convo):
 
 
 #========== FTP FUNCTIONS ==========#
-def listFiles():
-    ctrlSock = connectCtrl()
-    dataSock = connectData(ctrlSock)
+# Returns a list of filenames in the specified FTP directory
+def listFiles(ftpDir="/", verbose = False):
+    ctrlSock = connectCtrl(verbose=verbose)
+    dataSock = connectData(ctrlSock, verbose=verbose)
 
     # Get files on server
-    runConvo(ctrlSock, [ 'LIST\r\n' ])
-    conn, addr = dataSock.accept()
+    resp = runConvo(ctrlSock, [ f'CWD {ftpDir}\r\n', ], verbose=verbose)
 
-    # Print files
-    print(conn.recv(BUFFER).decode())
+    if resp[0].startswith('550'):
+        if verbose:
+            print(C_RED + 'Failed to open folder' + C_RESET)
+        return { "status": "failed", "data": []}
+
+    runConvo(ctrlSock, [ 'LIST\r\n' ], verbose=verbose)
+
+    conn, _ = dataSock.accept()
+
+    files = ""
+    while True:
+        data = conn.recv(BUFFER).decode()
+        files += data
+
+        if not data: break
+
+    def extractFilename(s):
+        parts = s.split(maxsplit=8)
+        filename = parts[-1]
+        return filename
+
+    res = []
+    for f in files.split('\r\n'):
+        if f:
+            res.append(extractFilename(f))
 
     # Close connections
     conn.close()
@@ -90,20 +116,21 @@ def listFiles():
     runConvo(ctrlSock, [ 'QUIT\r\n' ])
     ctrlSock.close()
 
-def sendData(conversation, write=False, path=""):
+    return { "status": "success", "data": res }
+
+# Send file at `path` over FTP and store as `name`
+def sendFile(path, name, verbose = False):
     ctrlSock = connectCtrl()
     dataSock = connectData(ctrlSock)
 
     # This will prompt the server to immediately connect to our data socket
-    runConvo(ctrlSock, conversation)
+    runConvo(ctrlSock, [ f'STOR {name}\r\n' ])
 
-    conn, addr = dataSock.accept() # Embrace connection 🤗
-    # print(f"{C_GREEN}CONNECTED {C_RED}{addr}{C_RESET}")
+    conn, _ = dataSock.accept() # Embrace connection 🤗
 
     # Send file
-    if (write):
-        with open(path, 'rb') as file:
-            conn.send(file.read())
+    with open(path, 'rb') as file:
+        conn.send(file.read())
 
 
     # Close connections

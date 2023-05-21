@@ -3,14 +3,13 @@
 from time import time
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-from socks import sendData
+from socks import sendFile
 import os
 
 class UpdateEventHandler(FileSystemEventHandler):
     def on_created(self, event):
         filename = event.src_path.rsplit(os.sep, maxsplit=1)[-1]
-        conversation = [ f'STOR {filename}\r\n' ]
-        sendData(path=event.src_path,write=True,conversation=conversation)
+        # sendData(path=event.src_path,write=True,conversation=conversation)
         pass
 
     def on_moved(self, event):
@@ -20,19 +19,19 @@ class UpdateEventHandler(FileSystemEventHandler):
             f'RNFR {originalfilename}' , 
             f'RNTO {newfilename}'
         ]
-        sendData(conversation=conversation)
+        # sendData(conversation=conversation)
         pass
 
     def on_deleted(self, event):
         filename = event.src_path.rsplit(os.sep, maxsplit=1)[-1]
         conversation = [ f'DELE {filename}\r\n' ]
-        sendData(conversation=conversation)
+        # sendData(conversation=conversation)
         pass
 
     def on_modified(self, event):
         filename = event.src_path.rsplit(os.sep, maxsplit=1)[-1]
         conversation = [ f'STOR {filename}\r\n' ]
-        sendData(path=event.src_path,write=True,conversation=conversation)
+        # sendData(path=event.src_path,write=True,conversation=conversation)
         pass
 
 # TODO: We might want to expose callbacks to the above
