@@ -1,15 +1,13 @@
 # pylint: disable=missing-module-docstring, wildcard-import, unused-wildcard-import, missing-function-docstring, invalid-name, missing-class-docstring
 
+import os
+import json
 from time import time
-from pics import makeArchive
-from configs import PATH
 from watchdog.events import FileSystemEventHandler
 from watchdog.events import DirModifiedEvent
 from watchdog.observers import Observer
 from socks import sendFile
-import os
-import json
-import time
+from configs import PATH
 
 def checkfile() -> bool:
     path = './.feetpics/backups'
@@ -22,7 +20,7 @@ def checkfile() -> bool:
             backup = filename.split(".")[0]
     if backup == "":
         return True
-    with open('./.feetpics/config', 'r') as f:
+    with open('./.feetpics/config', 'r', encoding="utf-8") as f:
         json_data = f.read()
     
     # parse the JSON data and convert it to a dictionary
@@ -43,6 +41,7 @@ def sendArchive():
         if os.path.isfile(os.path.join(path, filename)):
             # print the name of the file
             backup = filename
+
     sendFile(f"./.feetpics/backups/{backup}",backup)
 class UpdateEventHandler(FileSystemEventHandler):
 

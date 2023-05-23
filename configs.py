@@ -14,4 +14,4 @@ PASSWORD = 'gustav_is_cool69'
 BUFFER = 1024
 
 #===== Backup Directory path =====#
-PATH = "./backup"
+PATH = "./.feetpics/temp"

@@ -2,7 +2,6 @@
 
 import socket
 import random
-import os
 from configs import *
 
 #========== UTILITY FUNCTIONS ==========#

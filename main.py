@@ -7,6 +7,7 @@ import datetime
 import json
 from configs import *
 from socks import sendFile, listFiles
+from pics import patchFolder
 from feet import observe
 
 # Gets the initial project configuration if it exists, else creates it
@@ -25,7 +26,7 @@ def initFeetpics(projId = None):
         os.mkdir(".feetpics/temp") # Workspace where we construct new backups
         os.mkdir(".feetpics/backups") # Stores the latest backup zips
 
-        # Create .feetpics/config
+        # Create .feetpics/confilive shareg
         config = {
             "name": "/".join(cwd.split(os.sep)[:-2]),
             "id": binascii.b2a_hex(os.urandom(16)).decode("utf-8") if projId == None else projId,
@@ -80,13 +81,18 @@ def runInteractive(config):
                 running = False
 
 def runObserver(config):
-    observe(PATH)
+    # Detect file changes
+    # Check if config["backupInterval"] time has elapsed since last backup
+    pass
 
 if __name__ == '__main__':
     cwd = os.getcwd()
     config = initFeetpics()
-    
+
+    patchFolder("./.feetpics/latest", ".", ".feetpics/temp")
+
     #===== CHECK LATEST BACKUP =====#
+    # Update .feetpics/latest with the latest backup (this allows us to perform diffs)
     ftp_files = listFiles(f"/feetpics/{config['id']}")
 
     if ftp_files["status"] != "success":
@@ -100,8 +106,8 @@ if __name__ == '__main__':
         description="A simple FTP backup tool"
         )
 
-    parser.add_argument("-i", "--interactive", action="store_true", help="Run in interactive mode")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Print verbose output")
+    parser.add_argument("-i", "--interactive", action="store_true", help="run in interactive mode")
+    parser.add_argument("-v", "--verbose", action="store_true", help="print verbose output")
     args = parser.parse_args()
 
     if args.interactive:
