@@ -80,9 +80,7 @@ def runInteractive(config):
                 running = False
 
 def runObserver(config):
-    # Detect file changes
-    # Check if config["backupInterval"] time has elapsed since last backup
-    pass
+    observe(PATH)
 
 if __name__ == '__main__':
     cwd = os.getcwd()
