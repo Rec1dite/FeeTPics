@@ -26,7 +26,8 @@ def checkfile() -> bool:
         json_data = f.read()
     
     # parse the JSON data and convert it to a dictionary
-    timer = int (json.loads(json_data)["created"])
+    timer = int (json.loads(json_data)["backupInterval"])
+    print(timer)
     print(str(int(time.time()))  + ">=" + str(timer + int(backup)))
     if (int(time.time())  >= (timer + int(backup))):
         os.remove(f'./.feetpics/backups/{backup}.zip')
@@ -41,8 +42,8 @@ def sendArchive():
         # check if the file is a regular file (i.e. not a directory)
         if os.path.isfile(os.path.join(path, filename)):
             # print the name of the file
-            backup = filename.split(".")[0]
-    sendFile(f"./.feetpics/backups/{backup}")
+            backup = filename
+    sendFile(f"./.feetpics/backups/{backup}",backup)
 class UpdateEventHandler(FileSystemEventHandler):
 
     def on_created(self, event):
