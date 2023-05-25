@@ -118,6 +118,16 @@ def listFiles(ftpDir="/", verbose = False):
     return { "status": "success", "data": res }
 
 # Send file at `path` over FTP and store as `name`
+def makeDir(ftpPath, verbose = False):
+    ctrlSock = connectCtrl()
+
+    # This will prompt the server to immediately connect to our data socket
+    runConvo(ctrlSock, [ f'MKD {ftpPath}\r\n' ], verbose=verbose)
+
+    runConvo(ctrlSock, [ 'QUIT\r\n' ], verbose=verbose)
+    ctrlSock.close()
+
+# Send file at `path` over FTP and store as `name`
 def sendFile(path, name, verbose = False):
     ctrlSock = connectCtrl()
     dataSock = connectData(ctrlSock)

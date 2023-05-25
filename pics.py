@@ -7,10 +7,9 @@ from configs import *
 
 dmp = diff_match_patch()
 
-def makeArchive(folderToZip)->str:
-    curtime = str(int(time.time()))
-    archive = make_archive(f'./.feetpics/backups/{curtime}', 'zip', f'{folderToZip}')
-
+# Package all files in temp folder into a zip archive and save in backups folder
+def makeBackupArchive(archiveName):
+    make_archive(f'./.feetpics/backups/{archiveName}', 'zip', './.feetpics/temp')
 
 # Descend through subdirectories of a folder and create a patch for each file
 def patchFolder(folderBefore, folderAfter, outFolder):
@@ -22,7 +21,7 @@ def patchFolder(folderBefore, folderAfter, outFolder):
 
         for file in files:
             if not file.startswith('.'):
-                beforePath = os.path.join(folderBefore, subdir, file)
+                beforePath = os.path.join(folderBefore, subdir[1:], file)
                 afterPath = os.path.join(subdir, file)
 
                 print(beforePath)
@@ -30,7 +29,6 @@ def patchFolder(folderBefore, folderAfter, outFolder):
                 print()
 
                 if os.path.isfile(beforePath):
-                    pass
                     createFilePatch(beforePath, afterPath, f'{outFolder}/{file}.patch')
 
 def createFilePatch(fileBefore, fileAfter, outFile):

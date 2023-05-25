@@ -1,83 +1,78 @@
 # pylint: disable=missing-module-docstring, wildcard-import, unused-wildcard-import, missing-function-docstring, invalid-name, missing-class-docstring
 
 import os
+import time
 import json
-from time import time
 from watchdog.events import FileSystemEventHandler
 from watchdog.events import DirModifiedEvent
 from watchdog.observers import Observer
 from socks import sendFile
-from configs import PATH
+from pics import makeBackupArchive, patchFolder
+from configs import *
 
-def checkfile() -> bool:
-    path = './.feetpics/backups'
-    # iterate over files in the directory
-    backup = ""
-    for filename in os.listdir(path):
-        # check if the file is a regular file (i.e. not a directory)
-        if os.path.isfile(os.path.join(path, filename)):
-            # print the name of the file
-            backup = filename.split(".")[0]
-    if backup == "":
-        return True
-    with open('./.feetpics/config', 'r', encoding="utf-8") as f:
-        json_data = f.read()
-    
-    # parse the JSON data and convert it to a dictionary
-    timer = int (json.loads(json_data)["backupInterval"])
-    print(timer)
-    print(str(int(time.time()))  + ">=" + str(timer + int(backup)))
-    if (int(time.time())  >= (timer + int(backup))):
-        os.remove(f'./.feetpics/backups/{backup}.zip')
-        return True
-    return False
+def writeConfig(config):
+    with open(".feetpics/config", "w", encoding='utf-8') as f:
+        f.write(json.dumps(config))
 
-def sendArchive():
-    path = './.feetpics/backups'
-    # iterate over files in the directory
-    backup = ""
-    for filename in os.listdir(path):
-        # check if the file is a regular file (i.e. not a directory)
-        if os.path.isfile(os.path.join(path, filename)):
-            # print the name of the file
-            backup = filename
+def handleEvent(event, config, message="changed", verbose=False):
+    # TODO: Check properly if this is the .feetpics folder
+    if ".feetpics" in event.src_path:
+        return
 
-    sendFile(f"./.feetpics/backups/{backup}",backup)
+    print(C_ORANGE + f"File {message}: " + C_RESET + event.src_path)
+
+    # Check if sufficient time has passed since the last backup
+    if config["lastBackup"] + config["backupInterval"] <= time.time():
+        print(C_GREEN + "Timer passed, backing up" + C_RESET)
+
+        backupTime = int(time.time())
+        config["lastBackup"] = backupTime
+        writeConfig(config)
+
+        #===== Create backup =====#
+
+        # Create patches in .feetpics/temp
+        patchFolder("./.feetpics/latest", ".", ".feetpics/temp")
+
+        # Zip patches into .feetpics/backups
+        makeBackupArchive(backupTime)
+
+        # Send the backup .zip to the server
+        sendFile(f"./.feetpics/backups/{backupTime}.zip", f"/feetpics/{config['id']}/{backupTime}.zip")
+
 class UpdateEventHandler(FileSystemEventHandler):
+    config = {}
+    verbose = False
 
     def on_created(self, event):
-        if (checkfile()):
-            makeArchive(PATH)
-            sendArchive()
+        handleEvent(event, self.config, "created", self.verbose)
 
     def on_moved(self, event):
-        if (checkfile()):
-            makeArchive(PATH)
-            sendArchive()
+        handleEvent(event, self.config, "moved", self.verbose)
 
     def on_deleted(self, event):
-        if (checkfile()):
-            makeArchive(PATH)
-            sendArchive()
+        handleEvent(event, self.config, "deleted", self.verbose)
 
     def on_modified(self, event):
+        # Ignore directory modifications
         if (isinstance(event, DirModifiedEvent)):
             return
-        if (checkfile()):
-            makeArchive(PATH)
-            sendArchive()
 
-# TODO: We might want to expose callbacks to the above
-#       functions through parameters in observe(...)
-def observe(path):
+        handleEvent(event, self.config, "modified", self.verbose)
+
+def observe(path, config, verbose=False):
     observer = Observer()
+
     eventHandler = UpdateEventHandler()
+    eventHandler.config = config
+    eventHandler.verbose = verbose
+
     observer.schedule(event_handler=eventHandler, path=path, recursive=True)
     observer.start()
 
     try:
         while True:
-            time.sleep(1)
+            time.sleep(0.1)
 
     except KeyboardInterrupt:
         observer.stop()
