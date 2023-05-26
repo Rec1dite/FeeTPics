@@ -54,12 +54,22 @@ def runInteractive(config):
             case "help":
                 print("help\t\t\t- Display this help message")
                 print("list\t\t\t- List all backups")
+                print("projects\t\t\t- List all backups")
                 print("backup\t\t\t- Backup the current directory")
                 print("restore <timestamp>\t- Restore from the specified backup")
                 print("nuke\t\t\t- Delete all backups")
 
+            case "projects":
+                print("Backups as of " + C_BLUE + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + C_RESET + ":")
+                files = listFiles(f"/feetpics")["data"]
+                for file in files:
+                    print("- " + C_ORANGE + file + C_RESET)
+
             case "list":
                 print("Backups as of " + C_BLUE + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + C_RESET + ":")
+                files = listFiles(f"/feetpics/{config['id']}")["data"]
+                for file in files:
+                    print("- " + C_ORANGE + datetime.datetime.fromtimestamp(int(file.split(".")[0])).strftime("%Y-%m-%d %H:%M:%S") + C_RESET)
 
             case "backup":
                 print("Backing up...")
