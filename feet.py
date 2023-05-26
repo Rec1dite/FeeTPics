@@ -1,13 +1,12 @@
 # pylint: disable=missing-module-docstring, wildcard-import, unused-wildcard-import, missing-function-docstring, invalid-name, missing-class-docstring
 
-import os
 import time
 import json
 from watchdog.events import FileSystemEventHandler
 from watchdog.events import DirModifiedEvent
 from watchdog.observers import Observer
 from socks import sendFile
-from pics import makeBackupArchive, patchFolder
+from pics import makeBackupArchive, patchFolder, cleanPatches
 from configs import *
 
 def writeConfig(config):
@@ -23,7 +22,8 @@ def handleEvent(event, config, message="changed", verbose=False):
 
     # Check if sufficient time has passed since the last backup
     if config["lastBackup"] + config["backupInterval"] <= time.time():
-        print(C_GREEN + "Timer passed, backing up" + C_RESET)
+
+        print(C_GREEN + "Backing up" + C_RESET)
 
         backupTime = int(time.time())
         config["lastBackup"] = backupTime
@@ -32,13 +32,16 @@ def handleEvent(event, config, message="changed", verbose=False):
         #===== Create backup =====#
 
         # Create patches in .feetpics/temp
-        patchFolder("./.feetpics/latest", ".", ".feetpics/temp")
+        patchFolder(".", ".feetpics/temp")
 
         # Zip patches into .feetpics/backups
         makeBackupArchive(backupTime)
 
         # Send the backup .zip to the server
-        sendFile(f"./.feetpics/backups/{backupTime}.zip", f"/feetpics/{config['id']}/{backupTime}.zip")
+        sendFile(f"./.feetpics/backups/{backupTime}.zip", f"/feetpics/{config['id']}/{backupTime}.zip", verbose=verbose)
+
+        # Clean the temp dir
+        cleanPatches()
 
 class UpdateEventHandler(FileSystemEventHandler):
     config = {}

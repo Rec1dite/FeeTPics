@@ -1,14 +1,12 @@
-# pylint: disable=missing-module-docstring, wildcard-import, unused-wildcard-import, missing-function-docstring, invalid-name, missing-class-docstring
+# pylint: disable=missing-module-docstring, wildcard-import, unused-wildcard-import, missing-function-docstring, invalid-name, missing-class-docstring, redefined-outer-name
 import os
 import sys
-import shutil
 import argparse
 import binascii
 import datetime
 import json
 from configs import *
-from socks import sendFile, listFiles, makeDir
-from pics import patchFolder
+from socks import listFiles, makeDir
 from feet import observe
 
 # Gets the initial project configuration if it exists, else creates it
@@ -128,6 +126,7 @@ if __name__ == '__main__':
 
     else:
         #===== OBSERVER MODE =====#
+        print(C_PURPLE + "Running in observer mode" + C_RESET)
         # Detect file changes
         # Check if config["backupInterval"] time has elapsed since last backup
         observe(cwd, config, args.verbose)
